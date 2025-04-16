@@ -1,1 +1,29 @@
-n
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fresh Ink Generator</title>
+</head>
+<body>
+  <h1>🖋️ Fresh Ink Generator</h1>
+  <input id="prompt" placeholder="Enter your tattoo idea..." />
+  <button onclick="generate()">Generate</button>
+  <div id="result"></div>
+
+  <script>
+    async function generate() {
+      const prompt = document.getElementById("prompt").value;
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await response.json();
+      document.getElementById("result").innerHTML =
+        `<img src="${data.image_url}" alt="Generated Tattoo" />`;
+    }
+  </script>
+</body>
+</html>
