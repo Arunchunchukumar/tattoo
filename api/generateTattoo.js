@@ -1,12 +1,28 @@
 // api/generateTattoo.js
-const fetch = require('node-fetch');
+import fetch from 'node-fetch'; // Changed to ES module import
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  // Handle OPTIONS request for CORS preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
   const { prompt } = req.body;
+  
+  if (!prompt || typeof prompt !== 'string') {
+    return res.status(400).json({ error: 'Prompt is required and must be a string' });
+  }
+
   const replicateApiToken = process.env.REPLICATE_API_TOKEN;
 
   if (!replicateApiToken) {
@@ -15,6 +31,8 @@ module.exports = async (req, res) => {
   }
 
   try {
+    console.log('Starting prediction with prompt:', prompt);
+    
     // Start the prediction
     const startResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
@@ -31,20 +49,26 @@ module.exports = async (req, res) => {
     });
 
     if (!startResponse.ok) {
-      console.error('Replicate API error:', startResponse.status, startResponse.statusText);
-      return res.status(500).json({ error: 'Replicate API request failed' });
+      const errorText = await startResponse.text();
+      console.error('Replicate API error:', startResponse.status, errorText);
+      return res.status(500).json({ 
+        error: 'Replicate API request failed', 
+        status: startResponse.status,
+        details: errorText
+      });
     }
 
     const prediction = await startResponse.json();
-    const predictionId = prediction.id;
-
-    // Poll for the result
+    console.log('Prediction started:', prediction.id);
+    
     let result = null;
     let attempts = 0;
-    const maxAttempts = 30; // Maximum number of polling attempts
+    const maxAttempts = 30;
     
     while (attempts < maxAttempts) {
-      const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+      console.log(`Polling attempt ${attempts + 1}/${maxAttempts}`);
+      
+      const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
         headers: {
           'Authorization': `Token ${replicateApiToken}`,
           'Content-Type': 'application/json'
@@ -52,12 +76,15 @@ module.exports = async (req, res) => {
       });
 
       if (!pollResponse.ok) {
-        throw new Error(`Polling failed with status ${pollResponse.status}`);
+        const errorText = await pollResponse.text();
+        throw new Error(`Polling failed with status ${pollResponse.status}: ${errorText}`);
       }
 
       result = await pollResponse.json();
+      console.log('Poll status:', result.status);
       
       if (result.status === 'succeeded') {
+        console.log('Generation succeeded:', result.output);
         return res.status(200).json({ output: result.output });
       }
       
@@ -73,6 +100,9 @@ module.exports = async (req, res) => {
     throw new Error('Maximum polling attempts reached');
   } catch (error) {
     console.error('Error during Replicate API call:', error);
-    res.status(500).json({ error: 'Failed to call Replicate API' });
+    return res.status(500).json({ 
+      error: 'Failed to call Replicate API',
+      message: error.message
+    });
   }
-};
+}
