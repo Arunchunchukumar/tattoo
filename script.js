@@ -12,7 +12,7 @@ async function generateTattoo() {
         });
 
         if (!response.ok) {
-            console.error('Backend error:', response.status, response.statusText);
+            console.error('Backend error:', response.status, await response.text());
             return alert('Failed to generate tattoo.  Check the console for details.');
         }
 
@@ -23,27 +23,14 @@ async function generateTattoo() {
             return alert('Replicate API error. Check the console for details.');
         }
 
-
-        let interval = setInterval(async () => {
-            const checkResponse = await fetch(`https://api.replicate.com/v1/predictions/${data.id}`, {
-                headers: {
-                    'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
-                    'Content-Type': 'application/json'
-                },
-            });
-
-            const checkData = await checkResponse.json();
-
-            if (checkData.status === 'succeeded') {
-                clearInterval(interval);
-                tattooImage.src = checkData.output[0];  // set the image source
-                tattooImage.alt = 'Generated Tattoo';
-            } else if (checkData.status === 'failed') {
-                clearInterval(interval);
-                console.error("Replicate failed:", checkData);
-                alert("Replicate Failed");
-            }
-        }, 2000);
+        // Check if the image URL is directly returned
+        if (data && data.output && data.output.length > 0) {
+            tattooImage.src = data.output[0];
+            tattooImage.alt = 'Generated Tattoo';
+        } else {
+            console.warn('Unexpected data structure:', data);
+            alert('Unexpected response from the server. Check the console.');
+        }
 
     } catch (error) {
         console.error('Fetch error:', error);
