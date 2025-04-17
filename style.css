@@ -3,7 +3,6 @@
   margin: 0;
   padding: 0;
 }
-
 body {
   font-family: Arial, sans-serif;
   height: 100vh;
@@ -13,14 +12,12 @@ body {
   align-items: center;
   justify-content: center;
 }
-
 .container {
   width: 100%;
   max-width: 700px;
   padding: 20px;
   text-align: center;
 }
-
 input {
   width: 100%;
   padding: 15px;
@@ -29,7 +26,6 @@ input {
   border: none;
   border-radius: 10px;
 }
-
 button {
   margin-top: 10px;
   padding: 12px 25px;
@@ -39,12 +35,22 @@ button {
   font-size: 16px;
   border-radius: 10px;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
-
+button:hover {
+  background-color: #ff1a63;
+}
+button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
 #output {
   margin-top: 20px;
+  min-height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-
 #tattooImage {
   max-width: 100%;
   border-radius: 10px;
