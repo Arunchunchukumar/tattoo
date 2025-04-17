@@ -1,59 +1,52 @@
-let count = 0;
-
 async function generateTattoo() {
-  const prompt = document.getElementById("prompt").value;
-  const counter = document.getElementById("counter");
-  const image = document.getElementById("tattooImage");
+    const prompt = document.getElementById('prompt').value;
+    const tattooImage = document.getElementById('tattooImage');
 
-  if (!prompt) {
-    alert("Please enter a tattoo idea.");
-    return;
-  }
+    try {
+        const response = await fetch('/api/generateTattoo', {  // Changed URL
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ prompt: prompt })
+        });
 
-  image.src = "";
-  image.alt = "Generating...";
+        if (!response.ok) {
+            console.error('Backend error:', response.status, response.statusText);
+            return alert('Failed to generate tattoo.  Check the console for details.');
+        }
 
-  const response = await fetch("https://api.replicate.com/v1/predictions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Token ${API_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      version: "c78fc6f0d51c0f83e65536f211f7cbba635e5f43ec0168a4e958036d5f3f28e1", // SDXL Fresh Ink
-      input: { prompt }
-    })
-  });
+        const data = await response.json();
 
-  const prediction = await response.json();
-  const predictionId = prediction.id;
+        if (data.error) {
+            console.error('Replicate error:', data.error);
+            return alert('Replicate API error. Check the console for details.');
+        }
 
-  let outputUrl = null;
 
-  // Poll until the result is ready
-  while (!outputUrl) {
-    const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-      headers: {
-        "Authorization": `Token ${API_TOKEN}`,
-      }
-    });
+        let interval = setInterval(async () => {
+            const checkResponse = await fetch(`https://api.replicate.com/v1/predictions/${data.id}`, {
+                headers: {
+                    'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+            });
 
-    const data = await res.json();
+            const checkData = await checkResponse.json();
 
-    if (data.status === "succeeded") {
-      outputUrl = data.output[0];
-    } else if (data.status === "failed") {
-      image.alt = "Failed to generate tattoo.";
-      return;
+            if (checkData.status === 'succeeded') {
+                clearInterval(interval);
+                tattooImage.src = checkData.output[0];  // set the image source
+                tattooImage.alt = 'Generated Tattoo';
+            } else if (checkData.status === 'failed') {
+                clearInterval(interval);
+                console.error("Replicate failed:", checkData);
+                alert("Replicate Failed");
+            }
+        }, 2000);
+
+    } catch (error) {
+        console.error('Fetch error:', error);
+        alert('Failed to generate tattoo. Check the console for details.');
     }
-
-    await new Promise(resolve => setTimeout(resolve, 1500));
-  }
-
-  image.src = outputUrl;
-  image.alt = "Generated tattoo";
-
-  count++;
-  counter.innerText = count;
 }
-
