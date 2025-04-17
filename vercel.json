@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "functions": {
+    "api/generateTattoo.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    },
+    "api/checkPrediction.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/generateTattoo",
+      "dest": "/api/generateTattoo.js",
+      "methods": ["GET", "POST", "OPTIONS"]
+    },
+    {
+      "src": "/api/checkPrediction",
+      "dest": "/api/checkPrediction.js",
+      "methods": ["GET", "OPTIONS"]
+    }
+  ]
+}
