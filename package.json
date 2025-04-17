@@ -1,0 +1,9 @@
+{
+  "name": "tattoo-generator",
+  "version": "1.0.0",
+  "description": "Generate tattoo designs with AI",
+  "type": "module",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
